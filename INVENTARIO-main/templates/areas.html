@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Bibliotecas - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-geo-alt"></i> Bibliotecas</h1>
+    <a href="{{ url_for('add_area') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nueva Biblioteca
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if areas %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Ubicación</th>
+                        <th>Fecha de Creación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for area in areas %}
+                    <tr>
+                        <td>{{ area.id }}</td>
+                        <td><strong>{{ area.name }}</strong></td>
+                        <td>{{ area.description or '-' }}</td>
+                        <td>{{ area.location or '-' }}</td>
+                        <td>{{ area.created_at.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('edit_area', id=area.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <form method="POST" action="{{ url_for('delete_area', id=area.id) }}" class="d-inline"
+                                onsubmit="return confirm('¿Estás seguro de eliminar esta biblioteca?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox fs-1 text-muted"></i>
+            <p class="text-muted mt-3">No hay bibliotecas registradas</p>
+            <a href="{{ url_for('add_area') }}" class="btn btn-primary">Agregar Primera Biblioteca</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

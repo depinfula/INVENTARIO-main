@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Detalles del Equipo - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-laptop"></i> Detalles del Equipo</h1>
+    <div>
+        <a href="{{ url_for('edit_equipment', id=equipment.id) }}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+        <a href="{{ url_for('equipment') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-image"></i> Foto del Equipo</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if equipment.image_filename %}
+                <img src="{{ url_for('uploaded_file', filename=equipment.image_filename) }}" alt="{{ equipment.code }}"
+                    class="img-fluid rounded" style="max-height: 300px;">
+                {% else %}
+                <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
+                <p class="text-muted mt-2">Sin imagen</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información General</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Código:</strong><br>
+                        <span class="badge bg-primary fs-6">{{ equipment.code }}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Serial:</strong><br>
+                        {{ equipment.serial }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Tipo de Equipo:</strong><br>
+                        {{ equipment.equipment_type }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Marca:</strong><br>
+                        {{ equipment.brand or '-' }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Modelo:</strong><br>
+                        {{ equipment.model or '-' }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Estatus:</strong><br>
+                        {% if equipment.status == 'Disponible' %}
+                        <span class="badge bg-success">{{ equipment.status }}</span>
+                        {% elif equipment.status == 'Asignado' %}
+                        <span class="badge bg-primary">{{ equipment.status }}</span>
+                        {% elif equipment.status == 'Mantenimiento' %}
+                        <span class="badge bg-warning">{{ equipment.status }}</span>
+                        {% else %}
+                        <span class="badge bg-danger">{{ equipment.status }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Departamento:</strong><br>
+                        {{ equipment.department.name }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Biblioteca:</strong><br>
+                        {{ equipment.area.name if equipment.area else '-' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-network"></i> Información de Red</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Dirección IP:</strong><br>
+                        {% if equipment.ip_address %}
+                        <span class="badge bg-info fs-6">{{ equipment.ip_address }}</span>
+                        {% else %}
+                        <span class="text-muted">No asignada</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Dirección Física (MAC):</strong><br>
+                        {% if equipment.physical_address %}
+                        <code>{{ equipment.physical_address }}</code>
+                        {% else %}
+                        <span class="text-muted">No registrada</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if equipment.specifications %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-cpu"></i> Especificaciones Técnicas</h5>
+            </div>
+            <div class="card-body">
+                <div class="specifications-content">
+                    {{ equipment.specifications|nl2br }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person"></i> Asignación</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Asignado a:</strong><br>
+                        {% if equipment.assigned_personnel %}
+                        {{ equipment.assigned_personnel.name }} {{ equipment.assigned_personnel.last_name }}
+                        <br><small class="text-muted">{{ equipment.assigned_personnel.department.name }}</small>
+                        {% else %}
+                        <span class="text-muted">No asignado</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Fecha de Asignación:</strong><br>
+                        {% if equipment.assignment_date %}
+                        {{ equipment.assignment_date.strftime('%d/%m/%Y') }}
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar"></i> Fechas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <strong>Fecha de Registro:</strong><br>
+                        {{ equipment.registration_date.strftime('%d/%m/%Y') }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <strong>Fecha de Compra:</strong><br>
+                        {% if equipment.purchase_date %}
+                        {{ equipment.purchase_date.strftime('%d/%m/%Y') }}
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <strong>Vencimiento de Garantía:</strong><br>
+                        {% if equipment.warranty_expiry %}
+                        {{ equipment.warranty_expiry.strftime('%d/%m/%Y') }}
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if equipment.notes %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-sticky"></i> Notas</h5>
+            </div>
+            <div class="card-body">
+                {{ equipment.notes|nl2br }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

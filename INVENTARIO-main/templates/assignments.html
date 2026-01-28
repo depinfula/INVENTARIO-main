@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Asignaciones - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-clipboard-check"></i> Asignaciones de Equipos</h1>
+    <a href="{{ url_for('add_assignment') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nueva Asignación
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if assignments %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Equipo</th>
+                        <th>IP</th>
+                        <th>Personal</th>
+                        <th>Fecha Asignación</th>
+                        <th>Fecha Devolución</th>
+                        <th>Estatus</th>
+                        <th>Asignado por</th>
+                        <th>Notas</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment in assignments %}
+                    <tr>
+                        <td>
+                            <strong>{{ assignment.equipment.code }}</strong><br>
+                            <small class="text-muted">{{ assignment.equipment.equipment_type }}</small>
+                        </td>
+                        <td>
+                            {% if assignment.equipment.ip_address %}
+                                <span class="badge bg-info">{{ assignment.equipment.ip_address }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ assignment.personnel.name }} {{ assignment.personnel.last_name }}</strong><br>
+                            <small class="text-muted">{{ assignment.personnel.department.name }}</small>
+                        </td>
+                        <td>{{ assignment.assignment_date.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ assignment.return_date.strftime('%d/%m/%Y') if assignment.return_date else '-' }}</td>
+                        <td>
+                            {% if assignment.status == 'Activa' %}
+                                <span class="badge bg-success">{{ assignment.status }}</span>
+                            {% elif assignment.status == 'Devuelta' %}
+                                <span class="badge bg-secondary">{{ assignment.status }}</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ assignment.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ assignment.assigned_by }}</td>
+                        <td>{{ assignment.notes or '-' }}</td>
+                        <td>
+                            {% if assignment.status == 'Activa' %}
+                                <form method="POST" action="{{ url_for('return_assignment', id=assignment.id) }}" class="d-inline" onsubmit="return confirm('¿Confirmar devolución de este equipo?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-arrow-return-left"></i> Devolver
+                                    </button>
+                                </form>
+                            {% endif %}
+                            <a href="{{ url_for('edit_assignment', id=assignment.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <form method="POST" action="{{ url_for('delete_assignment', id=assignment.id) }}" class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar esta asignación?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox fs-1 text-muted"></i>
+            <p class="text-muted mt-3">No hay asignaciones registradas</p>
+            <a href="{{ url_for('add_assignment') }}" class="btn btn-primary">Crear Primera Asignación</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

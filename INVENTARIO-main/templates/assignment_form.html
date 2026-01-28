@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-clipboard-check"></i> {{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.equipment_id.label(class="form-label") }}
+                            {{ form.equipment_id(class="form-select", id="equipment_select", onchange="showEquipmentIP()") }}
+                            {% if form.equipment_id.errors %}
+                                <div class="text-danger small">
+                                    {% for error in form.equipment_id.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Solo se muestran equipos disponibles o asignados</small>
+                            <div id="equipment_ip_info" class="mt-2" style="display: none;">
+                                <small class="text-info">
+                                    <i class="bi bi-info-circle"></i> IP del equipo: <strong id="equipment_ip_value">-</strong>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.personnel_id.label(class="form-label") }}
+                            {{ form.personnel_id(class="form-select") }}
+                            {% if form.personnel_id.errors %}
+                                <div class="text-danger small">
+                                    {% for error in form.personnel_id.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.assignment_date.label(class="form-label") }}
+                            {{ form.assignment_date(class="form-control", type="date") }}
+                            {% if form.assignment_date.errors %}
+                                <div class="text-danger small">
+                                    {% for error in form.assignment_date.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.return_date.label(class="form-label") }}
+                            {{ form.return_date(class="form-control", type="date") }}
+                            {% if form.return_date.errors %}
+                                <div class="text-danger small">
+                                    {% for error in form.return_date.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Opcional - Se puede llenar al devolver el equipo</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.status.label(class="form-label") }}
+                            {{ form.status(class="form-select") }}
+                            {% if form.status.errors %}
+                                <div class="text-danger small">
+                                    {% for error in form.status.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        {{ form.notes.label(class="form-label") }}
+                        {{ form.notes(class="form-control", rows="3") }}
+                        {% if form.notes.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.notes.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                        <a href="{{ url_for('assignments') }}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showEquipmentIP() {
+    const select = document.getElementById('equipment_select');
+    const infoDiv = document.getElementById('equipment_ip_info');
+    const ipValue = document.getElementById('equipment_ip_value');
+    
+    if (select.value) {
+        // Hacer una petición AJAX para obtener la IP del equipo seleccionado
+        fetch(`/api/equipment/${select.value}/ip`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.ip_address) {
+                    ipValue.textContent = data.ip_address;
+                    infoDiv.style.display = 'block';
+                } else {
+                    ipValue.textContent = 'No asignada';
+                    infoDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                infoDiv.style.display = 'none';
+            });
+    } else {
+        infoDiv.style.display = 'none';
+    }
+}
+
+// Mostrar IP al cargar la página si hay un equipo seleccionado
+document.addEventListener('DOMContentLoaded', function() {
+    {% if assignment %}
+        // Si estamos editando, mostrar la IP del equipo asignado
+        const currentIP = "{{ assignment.equipment.ip_address or '' }}";
+        if (currentIP) {
+            document.getElementById('equipment_ip_value').textContent = currentIP;
+            document.getElementById('equipment_ip_info').style.display = 'block';
+        }
+    {% endif %}
+});
+</script>
+{% endblock %}
+

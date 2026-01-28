@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-speedometer2"></i> Dashboard</h1>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-2">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Departamentos</h6>
+                        <h2 class="card-title">{{ total_departments }}</h2>
+                    </div>
+                    <i class="bi bi-building fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-secondary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Bibliotecas</h6>
+                        <h2 class="card-title">{{ total_areas }}</h2>
+                    </div>
+                    <i class="bi bi-geo-alt fs-1 opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('areas') }}" class="text-white text-decoration-none small stretched-link">Ver
+                    Detalles</a>
+                <div class="small text-white"><i class="bi bi-chevron-right"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Equipos Totales</h6>
+                        <h2 class="card-title">{{ total_equipment }}</h2>
+                    </div>
+                    <i class="bi bi-laptop fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Equipos Disponibles</h6>
+                        <h2 class="card-title">{{ available_equipment }}</h2>
+                    </div>
+                    <i class="bi bi-check-circle fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Personal</h6>
+                        <h2 class="card-title">{{ total_personnel }}</h2>
+                    </div>
+                    <i class="bi bi-people fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Accesos Rápidos</h5>
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <a href="{{ url_for('add_department') }}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-plus-circle"></i> Agregar Departamento
+                        </a>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('add_area') }}" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-plus-circle"></i> Agregar Biblioteca
+                        </a>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('add_equipment') }}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-plus-circle"></i> Agregar Equipo
+                        </a>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('add_personnel') }}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-plus-circle"></i> Agregar Personal
+                        </a>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('equipment') }}" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-list-ul"></i> Ver Todos los Equipos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

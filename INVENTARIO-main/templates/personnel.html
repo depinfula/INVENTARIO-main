@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Personal - Sistema de Inventario{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-people"></i> Personal</h1>
+    <a href="{{ url_for('add_personnel') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Agregar Personal
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if personnel %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID Empleado</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Cargo</th>
+                        <th>Departamento</th>
+                        <th>Biblioteca</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for person in personnel %}
+                    <tr>
+                        <td>{{ person.employee_id or '-' }}</td>
+                        <td><strong>{{ person.name }}</strong></td>
+                        <td>{{ person.last_name }}</td>
+                        <td>{{ person.email or '-' }}</td>
+                        <td>{{ person.phone or '-' }}</td>
+                        <td>{{ person.position or '-' }}</td>
+                        <td>{{ person.department.name }}</td>
+                        <td>{{ person.area.name if person.area else '-' }}</td>
+                        <td>
+                            <a href="{{ url_for('edit_personnel', id=person.id) }}"
+                                class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <form method="POST" action="{{ url_for('delete_personnel', id=person.id) }}"
+                                class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este personal?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox fs-1 text-muted"></i>
+            <p class="text-muted mt-3">No hay personal registrado</p>
+            <a href="{{ url_for('add_personnel') }}" class="btn btn-primary">Agregar Primer Personal</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
