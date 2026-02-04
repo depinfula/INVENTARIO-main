@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>{{ title }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {% if form.title.errors %}
+                        {{ form.title(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.title.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ form.title(class="form-control") }}
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {% if form.description.errors %}
+                        {{ form.description(class="form-control is-invalid", rows=5) }}
+                        <div class="invalid-feedback">
+                            {% for error in form.description.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ form.description(class="form-control", rows=5) }}
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.status.label(class="form-label") }}
+                            {% if form.status.errors %}
+                            {{ form.status(class="form-select is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.status.errors %}
+                                <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            {{ form.status(class="form-select") }}
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.priority.label(class="form-label") }}
+                            {% if form.priority.errors %}
+                            {{ form.priority(class="form-select is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.priority.errors %}
+                                <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            {{ form.priority(class="form-select") }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.ticket_type.label(class="form-label") }}
+                            {% if form.ticket_type.errors %}
+                            {{ form.ticket_type(class="form-select is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.ticket_type.errors %}
+                                <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            {{ form.ticket_type(class="form-select") }}
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.equipment_id.label(class="form-label") }}
+                            {% if form.equipment_id.errors %}
+                            {{ form.equipment_id(class="form-select is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.equipment_id.errors %}
+                                <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            {{ form.equipment_id(class="form-select") }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.personnel_id.label(class="form-label") }}
+                            {% if form.personnel_id.errors %}
+                            {{ form.personnel_id(class="form-select is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.personnel_id.errors %}
+                                <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            {{ form.personnel_id(class="form-select") }}
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.assigned_to_id.label(class="form-label") }}
+                            {% if form.assigned_to_id.errors %}
+                            {{ form.assigned_to_id(class="form-select is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.assigned_to_id.errors %}
+                                <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            {{ form.assigned_to_id(class="form-select") }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if form.attachment %}
+                    <div class="mb-3">
+                        {{ form.attachment.label(class="form-label") }}
+                        {% if form.attachment.errors %}
+                        {{ form.attachment(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.attachment.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ form.attachment(class="form-control") }}
+                        {% endif %}
+                        <small class="text-muted">Formatos permitidos: imágenes, PDF, Office, TXT</small>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                        <a href="{{ url_for('tickets') }}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

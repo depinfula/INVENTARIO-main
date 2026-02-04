@@ -110,3 +110,68 @@ class Assignment(db.Model):
     def __repr__(self):
         return f'<Assignment {self.equipment.code} -> {self.personnel.name}>'
 
+
+class Ticket(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(50), default='Abierto')  # Abierto, En Progreso, Esperando Respuesta, Resuelto, Cerrado
+    priority = db.Column(db.String(50), default='Media')  # Baja, Media, Alta, Crítica
+    ticket_type = db.Column(db.String(50), default='Incidente')  # Incidente, Requerimiento, Mantenimiento, Otro
+    
+    # IDs de relaciones
+    equipment_id = db.Column(db.Integer, db.ForeignKey('equipment.id'), nullable=True)
+    personnel_id = db.Column(db.Integer, db.ForeignKey('personnel.id'), nullable=True)  # Solicitante
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Usuario que creó el ticket (admin/tech)
+    assigned_to_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Usuario asignado (tech)
+    
+    # Fechas
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    closed_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relaciones
+    responses = db.relationship('TicketResponse', backref='ticket', lazy=True, cascade='all, delete-orphan')
+    history = db.relationship('TicketHistory', backref='ticket', lazy=True, cascade='all, delete-orphan')
+    attachments = db.relationship('TicketAttachment', backref='ticket', lazy=True, cascade='all, delete-orphan')
+    
+    # Relacion con Equipment y Personnel se definen via backref o foreign_keys
+    equipment = db.relationship('Equipment', backref='tickets')
+    personnel = db.relationship('Personnel', backref='tickets')
+    created_by = db.relationship('User', foreign_keys=[created_by_id], backref='created_tickets')
+    assigned_to = db.relationship('User', foreign_keys=[assigned_to_id], backref='assigned_tickets')
+
+    def __repr__(self):
+        return f'<Ticket {self.id}: {self.title}>'
+
+class TicketResponse(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey('ticket.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref='ticket_responses')
+
+class TicketHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey('ticket.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    change_type = db.Column(db.String(50), nullable=False)  # Cambio de estado, Asignación, Edición, etc.
+    old_value = db.Column(db.String(255))
+    new_value = db.Column(db.String(255))
+    details = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref='ticket_history')
+
+class TicketAttachment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey('ticket.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    file_type = db.Column(db.String(100))
+    uploaded_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    uploaded_by = db.relationship('User', backref='uploaded_files')

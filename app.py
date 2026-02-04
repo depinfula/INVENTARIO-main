@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, User, Department, Equipment, Personnel, Area, Assignment
+from models import db, User, Department, Equipment, Personnel, Area, Assignment, Ticket, TicketResponse, TicketHistory, TicketAttachment
 from sqlalchemy import or_
-from forms import LoginForm, RegisterForm, DepartmentForm, EquipmentForm, PersonnelForm, AreaForm, AssignmentForm
+from forms import LoginForm, RegisterForm, DepartmentForm, EquipmentForm, PersonnelForm, AreaForm, AssignmentForm, TicketForm, TicketResponseForm
 from config import Config
 from datetime import datetime
 import os
@@ -21,6 +21,12 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+@app.template_filter()
+def nl2br(value):
+    if not value:
+        return ""
+    return str(value).replace('\n', '<br>\n')
 
 # Si se requiere túnel SSH, iniciarlo antes de inicializar SQLAlchemy
 if app.config.get('USE_SSH_TUNNEL'):
@@ -678,7 +684,239 @@ def get_equipment_ip(id):
         'ip_address': equipment.ip_address or ''
     })
 
+
+# Rutas para Tickets de Soporte
+@app.route('/tickets')
+@login_required
+def tickets():
+    status_filter = request.args.get('status')
+    priority_filter = request.args.get('priority')
+    type_filter = request.args.get('type')
+    
+    query = Ticket.query
+    
+    if status_filter:
+        query = query.filter(Ticket.status == status_filter)
+    if priority_filter:
+        query = query.filter(Ticket.priority == priority_filter)
+    if type_filter:
+        query = query.filter(Ticket.ticket_type == type_filter)
+        
+    # Ordenar por fecha de actualización descendente (los mas recientes primero)
+    tickets_list = query.order_by(Ticket.updated_at.desc()).all()
+    
+    return render_template('tickets.html', tickets=tickets_list)
+
+@app.route('/tickets/add', methods=['GET', 'POST'])
+@login_required
+def add_ticket():
+    form = TicketForm()
+    if form.validate_on_submit():
+        try:
+            # Manejar adjunto
+            attachment_filename = None
+            original_filename = None
+            if form.attachment.data:
+                file = form.attachment.data
+                if file and allowed_file(file.filename):
+                    original_filename = secure_filename(file.filename)
+                    timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+                    attachment_filename = f"ticket_{timestamp}_{original_filename}"
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], attachment_filename)
+                    file.save(filepath)
+
+            ticket = Ticket(
+                title=form.title.data,
+                description=form.description.data,
+                status=form.status.data,
+                priority=form.priority.data,
+                ticket_type=form.ticket_type.data,
+                equipment_id=form.equipment_id.data if form.equipment_id.data else None,
+                personnel_id=form.personnel_id.data if form.personnel_id.data else None,
+                created_by_id=current_user.id,
+                assigned_to_id=form.assigned_to_id.data if form.assigned_to_id.data else None
+            )
+            
+            db.session.add(ticket)
+            db.session.flush() # Obtener ID
+            
+            # Guardar adjunto si existe
+            if attachment_filename:
+                attachment = TicketAttachment(
+                    ticket_id=ticket.id,
+                    filename=attachment_filename,
+                    original_filename=original_filename,
+                    uploaded_by_id=current_user.id
+                )
+                db.session.add(attachment)
+            
+            # Historial Inicial
+            history = TicketHistory(
+                ticket_id=ticket.id,
+                user_id=current_user.id,
+                change_type='Creación',
+                details='Ticket creado'
+            )
+            db.session.add(history)
+            
+            db.session.commit()
+            flash('Ticket creado exitosamente', 'success')
+            return redirect(url_for('tickets'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al crear ticket: {str(e)}', 'danger')
+            return render_template('ticket_form.html', form=form, title='Nuevo Ticket')
+            
+    return render_template('ticket_form.html', form=form, title='Nuevo Ticket')
+
+@app.route('/tickets/view/<int:id>', methods=['GET', 'POST'])
+@login_required
+def view_ticket(id):
+    ticket = Ticket.query.get_or_404(id)
+    response_form = TicketResponseForm()
+    
+    if response_form.validate_on_submit():
+        try:
+            # Crear respuesta
+            response = TicketResponse(
+                ticket_id=ticket.id,
+                user_id=current_user.id,
+                content=response_form.content.data
+            )
+            db.session.add(response)
+            
+            # Manejar adjunto en respuesta
+            if response_form.attachment.data:
+                file = response_form.attachment.data
+                if file and allowed_file(file.filename):
+                    original_filename = secure_filename(file.filename)
+                    timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+                    attachment_filename = f"ticket_resp_{ticket.id}_{timestamp}_{original_filename}"
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], attachment_filename)
+                    file.save(filepath)
+                    
+                    attachment = TicketAttachment(
+                        ticket_id=ticket.id,
+                        filename=attachment_filename,
+                        original_filename=original_filename,
+                        uploaded_by_id=current_user.id
+                    )
+                    db.session.add(attachment)
+
+            # Actualizar estado si se solicitó
+            if response_form.new_status.data and response_form.new_status.data != ticket.status:
+                old_status = ticket.status
+                ticket.status = response_form.new_status.data
+                
+                # Registrar cambio de estado
+                history = TicketHistory(
+                    ticket_id=ticket.id,
+                    user_id=current_user.id,
+                    change_type='Cambio de Estado',
+                    old_value=old_status,
+                    new_value=ticket.status,
+                    details='Estado actualizado mediante respuesta'
+                )
+                db.session.add(history)
+                
+                if ticket.status == 'Cerrado' or ticket.status == 'Resuelto':
+                    if not ticket.closed_at:
+                        ticket.closed_at = datetime.utcnow()
+            
+            ticket.updated_at = datetime.utcnow()
+            db.session.commit()
+            flash('Respuesta agregada exitosamente', 'success')
+            return redirect(url_for('view_ticket', id=id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al agregar respuesta: {str(e)}', 'danger')
+    
+    return render_template('ticket_view.html', ticket=ticket, form=response_form)
+
+@app.route('/tickets/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_ticket(id):
+    ticket = Ticket.query.get_or_404(id)
+    form = TicketForm(obj=ticket)
+    
+    if form.validate_on_submit():
+        try:
+            changes = []
+            
+            # Verificar cambios
+            if ticket.title != form.title.data:
+                changes.append(f"Título: {ticket.title} -> {form.title.data}")
+                ticket.title = form.title.data
+                
+            if ticket.status != form.status.data:
+                # Registrar historial específico para estado
+                h = TicketHistory(ticket_id=ticket.id, user_id=current_user.id, change_type='Cambio de Estado', 
+                                 old_value=ticket.status, new_value=form.status.data)
+                db.session.add(h)
+                ticket.status = form.status.data
+                if ticket.status in ['Resuelto', 'Cerrado'] and not ticket.closed_at:
+                    ticket.closed_at = datetime.utcnow()
+            
+            if ticket.priority != form.priority.data:
+                changes.append(f"Prioridad: {ticket.priority} -> {form.priority.data}")
+                ticket.priority = form.priority.data
+                
+            if ticket.assigned_to_id != form.assigned_to_id.data:
+                # Historial de asignación
+                 h = TicketHistory(ticket_id=ticket.id, user_id=current_user.id, change_type='Reasignación', 
+                                 details=f"Asignado a ID: {form.assigned_to_id.data}")
+                 db.session.add(h)
+                 ticket.assigned_to_id = form.assigned_to_id.data
+
+            # Actualizar otros campos
+            ticket.description = form.description.data
+            ticket.ticket_type = form.ticket_type.data
+            ticket.equipment_id = form.equipment_id.data or None
+            ticket.personnel_id = form.personnel_id.data or None
+            ticket.updated_at = datetime.utcnow()
+            
+            # Registrar edición general si hubo cambios no específicos
+            if changes:
+                 h = TicketHistory(ticket_id=ticket.id, user_id=current_user.id, change_type='Edición', 
+                                 details=", ".join(changes))
+                 db.session.add(h)
+
+            db.session.commit()
+            flash('Ticket actualizado exitosamente', 'success')
+            return redirect(url_for('view_ticket', id=id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar ticket: {str(e)}', 'danger')
+            
+    return render_template('ticket_form.html', form=form, title='Editar Ticket', ticket=ticket)
+
+
+@app.route('/tickets/reports')
+@login_required
+def ticket_reports():
+    # Estadísticas por Estado
+    status_stats = db.session.query(Ticket.status, db.func.count(Ticket.id)).group_by(Ticket.status).all()
+    
+    # Estadísticas por Tipo
+    type_stats = db.session.query(Ticket.ticket_type, db.func.count(Ticket.id)).group_by(Ticket.ticket_type).all()
+    
+    # Estadísticas por Prioridad
+    priority_stats = db.session.query(Ticket.priority, db.func.count(Ticket.id)).group_by(Ticket.priority).all()
+    
+    # Convertir a diccionarios para facilitar el uso en template
+    stats = {
+        'status': dict(status_stats),
+        'type': dict(type_stats),
+        'priority': dict(priority_stats)
+    }
+    
+    return render_template('ticket_reports.html', stats=stats)
+
 if __name__ == '__main__':
+
+
+    create_tables()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
 

@@ -40,6 +40,7 @@ class EquipmentForm(FlaskForm):
                                         ('Procesador', 'Procesador'), ('Tarjeta Gráfica', 'Tarjeta Gráfica'),
                                         ('Tarjeta Madre', 'Tarjeta Madre'), ('Tarjeta de Red', 'Tarjeta de Red'),
                                         ('Tarjeta de Sonido', 'Tarjeta de Sonido'), ('Tarjeta de Video', 'Tarjeta de Video'),
+                                        ('Cornetas', 'Cornetas'), ('Video beam', 'Video beam'),
                                         ('Teclado', 'Teclado'), ('Mouse', 'Mouse'), ('Audífonos', 'Audífonos'),('Regulador','Regulador'),
                                         ('Otro', 'Otro')],
                                 validators=[DataRequired()])
@@ -120,3 +121,56 @@ class AssignmentForm(FlaskForm):
         personnel = Personnel.query.order_by(Personnel.name).all()
         self.personnel_id.choices = [(p.id, f'{p.name} {p.last_name} - {p.department.name}') 
                                     for p in personnel] if personnel else []
+
+class TicketForm(FlaskForm):
+    title = StringField('Título', validators=[DataRequired(), Length(max=200)])
+    description = TextAreaField('Descripción', validators=[DataRequired()])
+    status = SelectField('Estado', 
+                        choices=[('Abierto', 'Abierto'), ('En Progreso', 'En Progreso'), 
+                                ('Esperando Respuesta', 'Esperando Respuesta'), 
+                                ('Resuelto', 'Resuelto'), ('Cerrado', 'Cerrado')],
+                        validators=[DataRequired()])
+    priority = SelectField('Prioridad', 
+                          choices=[('Baja', 'Baja'), ('Media', 'Media'), 
+                                  ('Alta', 'Alta'), ('Crítica', 'Crítica')],
+                          validators=[DataRequired()])
+    ticket_type = SelectField('Tipo', 
+                             choices=[('Incidente', 'Incidente'), ('Requerimiento', 'Requerimiento'), 
+                                     ('Mantenimiento', 'Mantenimiento'), ('Otro', 'Otro')],
+                             validators=[DataRequired()])
+    
+    equipment_id = SelectField('Equipo Relacionado', coerce=lambda x: int(x) if x else None, validators=[Optional()])
+    personnel_id = SelectField('Solicitante', coerce=lambda x: int(x) if x else None, validators=[Optional()])
+    assigned_to_id = SelectField('Asignado a', coerce=lambda x: int(x) if x else None, validators=[Optional()])
+    
+    # Archivos adjuntos (opcional al crear)
+    attachment = FileField('Adjuntar Archivo', validators=[Optional(), FileAllowed(['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'], 'Formato no permitido')])
+    
+    submit = SubmitField('Guardar Ticket')
+
+    def __init__(self, *args, **kwargs):
+        super(TicketForm, self).__init__(*args, **kwargs)
+        from models import Equipment, Personnel, User
+        
+        # Equipos
+        equipments = Equipment.query.order_by(Equipment.code).all()
+        self.equipment_id.choices = [('', 'Ninguno')] + [(e.id, f'{e.code} - {e.equipment_type}') for e in equipments] if equipments else [('', 'Ninguno')]
+        
+        # Personal (Solicitantes)
+        personnel = Personnel.query.order_by(Personnel.name).all()
+        self.personnel_id.choices = [('', 'Ninguno')] + [(p.id, f'{p.name} {p.last_name}') for p in personnel] if personnel else [('', 'Ninguno')]
+        
+        # Usuarios (Técnicos/Admin) para asignar
+        users = User.query.order_by(User.username).all()
+        self.assigned_to_id.choices = [('', 'Sin Asignar')] + [(u.id, u.username) for u in users] if users else [('', 'Sin Asignar')]
+
+class TicketResponseForm(FlaskForm):
+    content = TextAreaField('Respuesta / Comentario', validators=[DataRequired()])
+    attachment = FileField('Adjuntar Archivo', validators=[Optional(), FileAllowed(['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'], 'Formato no permitido')])
+    # Checkbox para cambiar estado (opcional en respuesta rápida)
+    new_status = SelectField('Actualizar Estado', 
+                            choices=[('', 'Mantener Estado Actual'), ('Abierto', 'Abierto'), 
+                                    ('En Progreso', 'En Progreso'), ('Esperando Respuesta', 'Esperando Respuesta'), 
+                                    ('Resuelto', 'Resuelto'), ('Cerrado', 'Cerrado')],
+                            validators=[Optional()])
+    submit = SubmitField('Enviar Respuesta')

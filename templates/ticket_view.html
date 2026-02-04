@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h1>
+            <span class="text-muted">#{{ ticket.id }}</span> {{ ticket.title }}
+        </h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('edit_ticket', id=ticket.id) }}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Editar
+        </a>
+        <a href="{{ url_for('tickets') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a la Lista
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Detalles del Ticket (Columna Izquierda Superior) -->
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header bg-light">
+                <strong>Descripción</strong>
+            </div>
+            <div class="card-body">
+                <p class="card-text" style="white-space: pre-wrap;">{{ ticket.description }}</p>
+            </div>
+            <div class="card-footer text-muted font-italic">
+                <small>Creado por {{ ticket.created_by.username }} el {{ ticket.created_at.strftime('%Y-%m-%d %H:%M')
+                    }}</small>
+            </div>
+        </div>
+
+        <!-- Hilo de Respuestas -->
+        <h4 class="mb-3">Respuestas</h4>
+        {% if ticket.responses %}
+        {% for response in ticket.responses %}
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>{{ response.user.username }}</strong>
+                <small class="text-muted">{{ response.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+            </div>
+            <div class="card-body">
+                <p class="card-text" style="white-space: pre-wrap;">{{ response.content }}</p>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-muted">No hay respuestas aún.</p>
+        {% endif %}
+
+        <!-- Formulario de Nueva Respuesta -->
+        <div class="card mb-4 border-primary">
+            <div class="card-header bg-primary text-white">
+                Agregar Respuesta
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.content(class="form-control", rows=3, placeholder="Escribe tu respuesta aquí...") }}
+                        {% if form.content.errors %}
+                        <div class="text-danger small">
+                            {% for error in form.content.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.attachment.label(class="form-label") }}
+                            {{ form.attachment(class="form-control form-control-sm") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.new_status.label(class="form-label") }}
+                            {{ form.new_status(class="form-select form-select-sm") }}
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Enviar Respuesta</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Barra Lateral (Columna Derecha) -->
+    <div class="col-md-4">
+        <!-- Info Estado -->
+        <div class="card mb-3">
+            <div class="card-header">
+                Información
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Estado
+                    {% if ticket.status == 'Abierto' %}
+                    <span class="badge bg-danger">{{ ticket.status }}</span>
+                    {% elif ticket.status == 'En Progreso' %}
+                    <span class="badge bg-primary">{{ ticket.status }}</span>
+                    {% elif ticket.status == 'Esperando Respuesta' %}
+                    <span class="badge bg-warning text-dark">{{ ticket.status }}</span>
+                    {% elif ticket.status == 'Resuelto' %}
+                    <span class="badge bg-success">{{ ticket.status }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ ticket.status }}</span>
+                    {% endif %}
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Prioridad
+                    <span
+                        class="badge bg-{% if ticket.priority == 'Crítica' %}danger{% elif ticket.priority == 'Alta' %}warning text-dark{% else %}info{% endif %}">
+                        {{ ticket.priority }}
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Tipo
+                    <span>{{ ticket.ticket_type }}</span>
+                </li>
+                <li class="list-group-item">
+                    <strong>Asignado a:</strong><br>
+                    {{ ticket.assigned_to.username if ticket.assigned_to else 'Sin Asignar' }}
+                </li>
+            </ul>
+        </div>
+
+        <!-- Relaciones -->
+        <div class="card mb-3">
+            <div class="card-header">
+                Relaciones
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Solicitante:</strong><br>
+                    {% if ticket.personnel %}
+                    {{ ticket.personnel.name }} {{ ticket.personnel.last_name }}
+                    {% else %}
+                    <span class="text-muted">No especificado</span>
+                    {% endif %}
+                </p>
+                <hr>
+                <p class="mb-0"><strong>Equipo:</strong><br>
+                    {% if ticket.equipment %}
+                    <a href="{{ url_for('view_equipment', id=ticket.equipment.id) }}">
+                        {{ ticket.equipment.code }}
+                    </a>
+                    <br>
+                    <small>{{ ticket.equipment.equipment_type }} {{ ticket.equipment.brand or '' }}</small>
+                    {% else %}
+                    <span class="text-muted">No relacionado</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Adjuntos -->
+        <div class="card mb-3">
+            <div class="card-header">
+                Archivos Adjuntos
+            </div>
+            <ul class="list-group list-group-flush">
+                {% if ticket.attachments %}
+                {% for file in ticket.attachments %}
+                <li class="list-group-item">
+                    <a href="{{ url_for('uploaded_file', filename=file.filename) }}" target="_blank">
+                        <i class="fas fa-paperclip"></i> {{ file.original_filename }}
+                    </a>
+                    <br>
+                    <small class="text-muted">Por {{ file.uploaded_by.username }} - {{
+                        file.created_at.strftime('%d/%m/%Y') }}</small>
+                </li>
+                {% endfor %}
+                {% else %}
+                <li class="list-group-item text-muted small">No hay archivos adjuntos.</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Historial -->
+        <div class="card mb-3">
+            <div class="card-header" data-bs-toggle="collapse" data-bs-target="#collapseHistory"
+                style="cursor: pointer;">
+                Historial (Click para ver)
+            </div>
+            <div id="collapseHistory" class="collapse">
+                <ul class="list-group list-group-flush small">
+                    {% for event in ticket.history|sort(attribute='created_at', reverse=True) %}
+                    <li class="list-group-item">
+                        <strong>{{ event.change_type }}</strong> por {{ event.user.username }}<br>
+                        <span class="text-muted">{{ event.created_at.strftime('%d/%m %H:%M') }}</span>
+                        {% if event.old_value or event.new_value %}
+                        <br>De <code>{{ event.old_value }}</code> a <code>{{ event.new_value }}</code>
+                        {% endif %}
+                        {% if event.details %}
+                        <br><em>{{ event.details }}</em>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
