@@ -1,0 +1,13 @@
+agregar modulo de tickets de soporte tecnico
+agregar campos a la base de datos de los tickets de soporte tecnico
+agregar reportes de tickets de soporte tecnico
+los tickets de soporte tecnico deben tener una relacion con el equipo y el personal
+deben agregarse los campos de fecha de creacion y fecha de cierre
+los tickets de soporte tecnico deben tener un estado
+los tickets de soporte tecnico deben tener un tipo
+los tickets de soporte tecnico deben tener una prioridad
+los tickets de soporte tecnico deben tener un responsable
+los tickets de soporte tecnico deben tener un historial de cambios
+los tickets de soporte tecnico deben tener un historial de respuestas
+los tickets de soporte tecnico deben tener un historial de archivos
+
