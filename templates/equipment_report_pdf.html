@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Equipos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .header-info {
+            margin-bottom: 20px;
+            text-align: right;
+            font-size: 9pt;
+            color: #666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .status-badge {
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .status-disponible { background-color: #d4edda; color: #155724; }
+        .status-asignado { background-color: #cce5ff; color: #004085; }
+        .status-mantenimiento { background-color: #fff3cd; color: #856404; }
+        .status-baja { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Reporte de Inventario de Equipos</h1>
+    
+    <div class="header-info">
+        <p>Fecha de generación: {{ generation_date }}</p>
+        <p>Generado por: {{ generated_by }}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Tipo</th>
+                <th>Marca/Modelo</th>
+                <th>Serial</th>
+                <th>Estado</th>
+                <th>Ubicación</th>
+                <th>Asignado a</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in equipment %}
+            <tr>
+                <td>{{ item.code }}</td>
+                <td>{{ item.equipment_type }}</td>
+                <td>{{ item.brand }} {{ item.model }}</td>
+                <td>{{ item.serial }}</td>
+                <td>
+                    <span class="status-badge status-{{ item.status|lower }}">
+                        {{ item.status }}
+                    </span>
+                </td>
+                <td>
+                    {{ item.department.name if item.department else '-' }}
+                    {% if item.area %} / {{ item.area.name }}{% endif %}
+                </td>
+                <td>
+                    {% if item.assigned_to %}
+                        {{ item.assigned_to.name }} {{ item.assigned_to.last_name }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div style="text-align: center; font-size: 8pt; margin-top: 50px;">
+        <p>Reporte generado por Sistema de Inventario</p>
+    </div>
+</body>
+</html>

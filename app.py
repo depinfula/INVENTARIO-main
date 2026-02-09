@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, make_response
+from io import BytesIO
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Department, Equipment, Personnel, Area, Assignment, Ticket, TicketResponse, TicketHistory, TicketAttachment
 from sqlalchemy import or_
@@ -8,6 +9,12 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 from urllib.parse import quote_plus
+
+try:
+    from xhtml2pdf import pisa
+except ImportError:
+    pisa = None
+    print("Advertencia: xhtml2pdf no está instalado. La generación de PDF no funcionará.")
 
 try:
     from sshtunnel import SSHTunnelForwarder
@@ -263,6 +270,79 @@ def equipment():
                          types=types,
                          departments=departments,
                          areas=areas)
+
+
+
+# ... (omitted code) ...
+
+@app.route('/equipment/report')
+@login_required
+def equipment_report():
+    if not pisa:
+        flash('La librería de generación de PDF no está instalada en el servidor.', 'danger')
+        return redirect(url_for('equipment'))
+
+    # Get filter parameters (same as equipment view)
+    search = request.args.get('search')
+    type_filter = request.args.get('type')
+    department_filter = request.args.get('department')
+    area_filter = request.args.get('area')
+    status_filter = request.args.get('status')
+    date_filter = request.args.get('date')
+
+    query = Equipment.query
+
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(or_(
+            Equipment.code.ilike(search_term),
+            Equipment.serial.ilike(search_term),
+            Equipment.brand.ilike(search_term),
+            Equipment.model.ilike(search_term)
+        ))
+    
+    if type_filter:
+        query = query.filter(Equipment.equipment_type == type_filter)
+    
+    if department_filter:
+        query = query.filter(Equipment.department_id == department_filter)
+        
+    if area_filter:
+        query = query.filter(Equipment.area_id == area_filter)
+        
+    if status_filter:
+        query = query.filter(Equipment.status == status_filter)
+        
+    if date_filter:
+        try:
+            date_obj = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            query = query.filter(db.func.date(Equipment.registration_date) == date_obj)
+        except ValueError:
+            pass
+
+    equipment_list = query.order_by(Equipment.created_at.desc()).all()
+    
+    # Render HTML for PDF
+    rendered = render_template('equipment_report_pdf.html', 
+                             equipment=equipment_list,
+                             generation_date=datetime.now().strftime('%d/%m/%Y %H:%M'),
+                             generated_by=current_user.username)
+    
+    # Create PDF
+    pdf = BytesIO()
+    pisa_status = pisa.CreatePDF(rendered, dest=pdf)
+    
+    if pisa_status.err:
+        flash('Hubo un error al generar el PDF', 'danger')
+        return redirect(url_for('equipment'))
+            
+    pdf.seek(0)
+    
+    response = make_response(pdf.getvalue())
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'attachment; filename=reporte_equipos.pdf'
+    
+    return response
 
 @app.route('/equipment/add', methods=['GET', 'POST'])
 @login_required
