@@ -3,7 +3,7 @@ from io import BytesIO
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Department, Equipment, Personnel, Area, Assignment, Ticket, TicketResponse, TicketHistory, TicketAttachment
 from sqlalchemy import or_
-from forms import LoginForm, RegisterForm, DepartmentForm, EquipmentForm, PersonnelForm, AreaForm, AssignmentForm, TicketForm, TicketResponseForm
+from forms import LoginForm, RegisterForm, DepartmentForm, EquipmentForm, PersonnelForm, AreaForm, AssignmentForm, TicketForm, TicketResponseForm, ChangePasswordForm, EditUserForm
 from config import Config
 from datetime import datetime
 import os
@@ -150,6 +150,70 @@ def logout():
     logout_user()
     flash('Sesión cerrada exitosamente', 'info')
     return redirect(url_for('login'))
+
+@app.route('/users')
+@login_required
+def users():
+    users_list = User.query.order_by(User.username).all()
+    return render_template('users.html', users=users_list)
+
+@app.route('/users/change_password/<int:id>', methods=['GET', 'POST'])
+@login_required
+def change_user_password(id):
+    user = User.query.get_or_404(id)
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        db.session.commit()
+        flash(f'Contraseña actualizada exitosamente para el usuario {user.username}', 'success')
+        return redirect(url_for('users'))
+    return render_template('change_user_password.html', form=form, user=user)
+
+@app.route('/users/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_user(id):
+    user = User.query.get_or_404(id)
+    form = EditUserForm(obj=user)
+    if form.validate_on_submit():
+        # Verificar duplicados (excluyendo el usuario actual)
+        if User.query.filter(User.username == form.username.data, User.id != id).first():
+            flash('El nombre de usuario ya existe', 'danger')
+            return render_template('edit_user.html', form=form, user=user)
+        if User.query.filter(User.email == form.email.data, User.id != id).first():
+            flash('El email ya existe', 'danger')
+            return render_template('edit_user.html', form=form, user=user)
+        
+        user.username = form.username.data
+        user.email = form.email.data
+        db.session.commit()
+        flash('Usuario actualizado exitosamente', 'success')
+        return redirect(url_for('users'))
+    return render_template('edit_user.html', form=form, user=user)
+
+@app.route('/users/delete/<int:id>', methods=['POST'])
+@login_required
+def delete_user(id):
+    if id == current_user.id:
+        flash('No puedes eliminar tu propia cuenta', 'danger')
+        return redirect(url_for('users'))
+        
+    user = User.query.get_or_404(id)
+    # Opcional: Verificar si el usuario tiene datos asociados críticos que impidan el borrado
+    # Por ahora permitimos borrar, SQLAlchemy se encargará de las relaciones (set null o cascade según modelo)
+    # Revisando models.py:
+    # Ticket.created_by y assigned_to son ForeignKeys sin cascade delete explícito en el modelo Ticket para User.
+    # Pero User tiene backrefs. Si borramos User, los tickets quedarán con created_by_id=NULL si la DB lo permite.
+    # Vamos a intentarlo.
+    
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        flash('Usuario eliminado exitosamente', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al eliminar usuario: {str(e)}', 'danger')
+        
+    return redirect(url_for('users'))
 
 @app.route('/dashboard')
 @login_required

@@ -6,40 +6,47 @@ try:
 except Exception:
     SSHTunnelForwarder = None
 
-
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    # Toma 'SECRET_KEY' de Render
+    SECRET_KEY = os.environ.get('SECRET_KEY')
 
-    DATABASE_USER =  'librum'
-    DATABASE_PASSWORD = 't0npl4*2020'
-    DATABASE_HOST = os.environ.get('DATABASE_HOST') or '127.0.0.1'
-    DATABASE_PORT = os.environ.get('DATABASE_PORT') or '5432'
-    DATABASE_NAME = 'inventario'
+    # Datos de Base de Datos extraídos de tus variables de entorno en Render
+    DATABASE_USER = os.environ.get('DATABASE_USER')
+    DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
+    DATABASE_HOST = os.environ.get('DATABASE_HOST')
+    DATABASE_PORT = os.environ.get('DATABASE_PORT')
+    DATABASE_NAME = os.environ.get('DATABASE_NAME')
 
-    # SSH tunnel options
-    USE_SSH_TUNNEL = True
-    SSH_HOST = '190.168.74.199'
-    SSH_PORT =  22
-    SSH_USERNAME='librum'
-    SSH_PASSWORD='t0npl4*2020'
-    SSH_PKEY = os.environ.get('SSH_PKEY')  # path to private key file, optional
+    # SSH Tunnel - Configurado según tus Keys de la imagen
+    # Agregamos un valor por defecto False para evitar errores si no se define
+    USE_SSH_TUNNEL = os.environ.get('USE_SSH_TUNNEL', 'False').lower() == 'true'
+    SSH_HOST = os.environ.get('SSH_HOST')
+    SSH_PORT = int(os.environ.get('SSH_PORT', 22))
+    SSH_USERNAME = os.environ.get('SSH_USERNAME', 'librum') # Puedes subir esta a Render también
+    SSH_PASSWORD = os.environ.get('SSH_PASSWORD')
+    SSH_PKEY = os.environ.get('SSH_PKEY') 
 
+    # URL de conexión para SQLAlchemy
     database_url = os.environ.get('DATABASE_URL')
+    
     if database_url:
+        # Si Render te da la DATABASE_URL directa, la usamos (corrigiendo el prefijo)
         if database_url.startswith('postgres://'):
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
         SQLALCHEMY_DATABASE_URI = database_url
     else:
+        # Si no hay URL directa, la armamos con las variables de tu captura
+        # quote_plus asegura que caracteres especiales en la contraseña no rompan la URL
         SQLALCHEMY_DATABASE_URI = (
-            'postgresql://'
-            f"{quote_plus(DATABASE_USER)}:{quote_plus(DATABASE_PASSWORD)}@{DATABASE_HOST}:{DATABASE_PORT}/{quote_plus(DATABASE_NAME)}"
+            f"postgresql://{quote_plus(DATABASE_USER)}:{quote_plus(DATABASE_PASSWORD)}@"
+            f"{DATABASE_HOST}:{DATABASE_PORT}/{quote_plus(DATABASE_NAME)}"
         )
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = 'static/uploads'
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024 
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    
     SQLALCHEMY_ENGINE_OPTIONS = {
         'connect_args': {'options': '-c client_encoding=LATIN1'}
     }
-

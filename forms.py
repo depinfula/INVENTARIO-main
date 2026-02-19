@@ -5,6 +5,13 @@ from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional
 from datetime import datetime
 from models import Department, Personnel, Area, Equipment
 
+class UploadEquipmentForm(FlaskForm):
+    file = FileField('Archivo Excel', validators=[
+        DataRequired(),
+        FileAllowed(['xlsx', 'xls'], 'Solo archivos Excel (.xlsx, .xls)')
+    ])
+    submit = SubmitField('Cargar Equipos')
+
 class LoginForm(FlaskForm):
     username = StringField('Usuario', validators=[DataRequired()])
     password = PasswordField('Contraseña', validators=[DataRequired()])
@@ -174,3 +181,13 @@ class TicketResponseForm(FlaskForm):
                                     ('Resuelto', 'Resuelto'), ('Cerrado', 'Cerrado')],
                             validators=[Optional()])
     submit = SubmitField('Enviar Respuesta')
+
+class ChangePasswordForm(FlaskForm):
+    password = PasswordField('Nueva Contraseña', validators=[DataRequired(), Length(min=6)])
+    password_confirm = PasswordField('Confirmar Nueva Contraseña', validators=[DataRequired(), EqualTo('password', message='Las contraseñas deben coincidir')])
+    submit = SubmitField('Cambiar Contraseña')
+
+class EditUserForm(FlaskForm):
+    username = StringField('Usuario', validators=[DataRequired(), Length(min=4, max=80)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Actualizar Usuario')
