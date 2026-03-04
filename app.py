@@ -7,6 +7,7 @@ from forms import LoginForm, RegisterForm, DepartmentForm, EquipmentForm, Person
 from config import Config
 from datetime import datetime
 import os
+import subprocess
 from werkzeug.utils import secure_filename
 from urllib.parse import quote_plus
 
@@ -1056,6 +1057,80 @@ def ticket_reports():
     }
     
     return render_template('ticket_reports.html', stats=stats)
+
+@app.route('/backup')
+@login_required
+def backup():
+    # Only allow admin to do this
+    if current_user.username != 'admin':
+        flash('No tienes permisos suficientes para realizar respaldos.', 'danger')
+        return redirect(url_for('dashboard'))
+        
+    try:
+        # Generar nombre de archivo con fecha y hora
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"respaldo_{timestamp}.sql"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Obtener todos los modelos en orden de dependencias para evitar conflictos de Foreign Key al restaurar
+        models = [Department, Area, User, Personnel, Equipment, Assignment, Ticket, TicketResponse, TicketHistory, TicketAttachment]
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write("-- Respaldo de datos generado nativamente por la aplicación (Solo INSERTs)\n")
+            f.write(f"-- Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            f.write("BEGIN;\n\n")
+            
+            for model in models:
+                table_name = model.__tablename__
+                records = model.query.all()
+                
+                if not records:
+                    continue
+                    
+                f.write(f"-- Datos de la tabla: {table_name}\n")
+                
+                for record in records:
+                    cols = []
+                    vals = []
+                    for column in model.__table__.columns:
+                        val = getattr(record, column.name)
+                        cols.append(column.name)
+                        
+                        if val is None:
+                            vals.append('NULL')
+                        elif isinstance(val, bool):
+                            vals.append('TRUE' if val else 'FALSE')
+                        elif isinstance(val, (int, float)):
+                            vals.append(str(val))
+                        elif isinstance(val, datetime):
+                            vals.append(f"'{val.strftime('%Y-%m-%d %H:%M:%S')}'")
+                        elif hasattr(val, 'strftime'): # Para campos date
+                            vals.append(f"'{val.strftime('%Y-%m-%d')}'")
+                        else:
+                            # Escapar comillas simples para SQL
+                            val_str = str(val).replace("'", "''")
+                            vals.append(f"'{val_str}'")
+                            
+                    cols_str = ", ".join(cols)
+                    vals_str = ", ".join(vals)
+                    f.write(f"INSERT INTO {table_name} ({cols_str}) VALUES ({vals_str});\n")
+                
+                # Opcional: reiniciar secuencias de ID si existe la columna id
+                if hasattr(model, 'id'):
+                    f.write(f"SELECT setval(pg_get_serial_sequence('{table_name}', 'id'), COALESCE(MAX(id), 1)) FROM {table_name};\n")
+                    
+                f.write("\n")
+                
+            f.write("COMMIT;\n")
+            
+        # Si todo salió bien, enviamos el archivo como attachment para descargar en la PC
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        flash(f'Ocurrió un error inesperado al generar el respaldo: {str(e)}', 'danger')
+        return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
 
