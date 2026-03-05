@@ -323,7 +323,9 @@ def equipment():
         except ValueError:
             pass
 
-    equipment_list = query.order_by(Equipment.created_at.desc()).all()
+    page = request.args.get('page', 1, type=int)
+    pagination = query.order_by(Equipment.created_at.desc()).paginate(page=page, per_page=50, error_out=False)
+    equipment_list = pagination.items
     
     # Get data for filters
     types = [t[0] for t in db.session.query(Equipment.equipment_type).distinct()]
@@ -332,6 +334,7 @@ def equipment():
 
     return render_template('equipment.html', 
                          equipment=equipment_list,
+                         pagination=pagination,
                          types=types,
                          departments=departments,
                          areas=areas)

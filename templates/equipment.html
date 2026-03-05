@@ -167,6 +167,39 @@
                 </tbody>
             </table>
         </div>
+
+        {% if pagination and pagination.pages > 1 %}
+        <nav aria-label="Opciones de paginación">
+            <ul class="pagination justify-content-center mt-4">
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link"
+                        href="{{ url_for('equipment', page=pagination.prev_num, search=request.args.get('search', ''), type=request.args.get('type', ''), department=request.args.get('department', ''), area=request.args.get('area', ''), status=request.args.get('status', ''), date=request.args.get('date', '')) }}">Anterior</a>
+                </li>
+
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                    <a class="page-link"
+                        href="{{ url_for('equipment', page=page_num, search=request.args.get('search', ''), type=request.args.get('type', ''), department=request.args.get('department', ''), area=request.args.get('area', ''), status=request.args.get('status', ''), date=request.args.get('date', '')) }}">{{
+                        page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+                {% endfor %}
+
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link"
+                        href="{{ url_for('equipment', page=pagination.next_num, search=request.args.get('search', ''), type=request.args.get('type', ''), department=request.args.get('department', ''), area=request.args.get('area', ''), status=request.args.get('status', ''), date=request.args.get('date', '')) }}">Siguiente</a>
+                </li>
+            </ul>
+        </nav>
+        <div class="text-center text-muted mt-2 mb-3">
+            <small>Mostrando p&aacute;gina {{ pagination.page }} de {{ pagination.pages }} (Total: {{ pagination.total
+                }} equipos)</small>
+        </div>
+        {% endif %}
+
         {% else %}
         <div class="text-center py-5">
             <i class="bi bi-inbox fs-1 text-muted"></i>
