@@ -55,10 +55,17 @@ body {
     .table-responsive {
         font-size: 0.875rem;
     }
-    
+
     .btn-sm {
         padding: 0.25rem 0.5rem;
         font-size: 0.75rem;
     }
 }
 
+/* Dropdown hover support for larger screens */
+@media all and (min-width: 992px) {
+    .navbar .dropdown-hover:hover .dropdown-menu {
+        display: block;
+        margin-top: 0;
+    }
+}
