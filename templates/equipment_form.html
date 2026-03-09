@@ -16,172 +16,189 @@
                     <div class="mb-3">
                         <label class="form-label">Foto Actual</label>
                         <div>
-                            <img src="{{ url_for('uploaded_file', filename=equipment.image_filename) }}" 
-                                 alt="{{ equipment.code }}" 
-                                 class="img-thumbnail" 
-                                 style="max-width: 200px; max-height: 200px;">
+                            <img src="{{ url_for('uploaded_file', filename=equipment.image_filename) }}"
+                                alt="{{ equipment.code }}" class="img-thumbnail"
+                                style="max-width: 200px; max-height: 200px;">
                         </div>
                     </div>
                     {% endif %}
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             {{ form.code.label(class="form-label") }}
                             {{ form.code(class="form-control", id="equipment_code") }}
                             {% if form.code.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.code.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger small">
+                                {% for error in form.code.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             {{ form.serial.label(class="form-label") }}
                             {{ form.serial(class="form-control") }}
                             {% if form.serial.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.serial.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger small">
+                                {% for error in form.serial.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.image.label(class="form-label") }}
+                            {{ form.image(class="form-control") }}
+                            <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF, WEBP (máx.
+                                16MB)</small>
+                            {% if form.image.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.image.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             {{ form.equipment_type.label(class="form-label") }}
                             {{ form.equipment_type(class="form-select", id="equipment_type") }}
                             {% if form.equipment_type.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.equipment_type.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger small">
+                                {% for error in form.equipment_type.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             {{ form.brand.label(class="form-label") }}
                             {{ form.brand(class="form-control") }}
                             {% if form.brand.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.brand.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger small">
+                                {% for error in form.brand.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             {{ form.model.label(class="form-label") }}
                             {{ form.model(class="form-control") }}
                             {% if form.model.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.model.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger small">
+                                {% for error in form.model.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            {{ form.status.label(class="form-label") }}
+                            {{ form.status(class="form-select") }}
+                            {% if form.status.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.status.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-4 mb-3">
-                            {{ form.status.label(class="form-label") }}
-                            {{ form.status(class="form-select") }}
-                            {% if form.status.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.status.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
                         <div class="col-md-4 mb-3">
                             {{ form.department_id.label(class="form-label") }}
                             {{ form.department_id(class="form-select") }}
                             {% if form.department_id.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.department_id.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger small">
+                                {% for error in form.department_id.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                         <div class="col-md-4 mb-3">
                             {{ form.area_id.label(class="form-label") }}
                             {{ form.area_id(class="form-select") }}
                             {% if form.area_id.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.area_id.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger small">
+                                {% for error in form.area_id.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                         <div class="col-md-4 mb-3">
                             {{ form.assigned_to_id.label(class="form-label") }}
                             {{ form.assigned_to_id(class="form-select") }}
                             {% if form.assigned_to_id.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.assigned_to_id.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger small">
+                                {% for error in form.assigned_to_id.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                     </div>
-                    <div class="mb-3">
-                        {{ form.image.label(class="form-label") }}
-                        {{ form.image(class="form-control") }}
-                        <small class="form-text text-muted">Formatos permitidos: JPG, PNG, GIF, WEBP (máx. 16MB)</small>
-                        {% if form.image.errors %}
-                            <div class="text-danger small">
-                                {% for error in form.image.errors %}
-                                    <div>{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
+
                     <!-- Campos condicionales para IP y MAC -->
                     <div class="row" id="network_fields">
                         <div class="col-md-6 mb-3">
                             {{ form.ip_address.label(class="form-label") }}
                             {{ form.ip_address(class="form-control", placeholder="Ej: 192.168.1.100") }}
-                            <small class="form-text text-muted">Dirección IP (IPv4 o IPv6) - Para routers, PCs, servidores, etc.</small>
+                            <small class="form-text text-muted">Dirección IP (IPv4 o IPv6) - Para routers, PCs,
+                                servidores, etc.</small>
                             {% if form.ip_address.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.ip_address.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger small">
+                                {% for error in form.ip_address.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                         <div class="col-md-6 mb-3">
                             {{ form.physical_address.label(class="form-label") }}
                             {{ form.physical_address(class="form-control") }}
-                            <small class="form-text text-muted">Dirección MAC (Dirección Física) - Ej: 00:1B:44:11:3A:B7</small>
+                            <small class="form-text text-muted">Dirección MAC (Dirección Física) - Ej:
+                                00:1B:44:11:3A:B7</small>
                             {% if form.physical_address.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.physical_address.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger small">
+                                {% for error in form.physical_address.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        {{ form.specifications.label(class="form-label") }}
-                        {{ form.specifications(class="form-control") }}
-                        <small class="form-text text-muted">Especificaciones técnicas (RAM, Procesador, Disco, etc.) - Ej: RAM: 8GB DDR4, Procesador: Intel Core i5-10400, Disco: 256GB SSD NVMe</small>
-                        {% if form.specifications.errors %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.specifications.label(class="form-label") }}
+                            {{ form.specifications(class="form-control", rows="3") }}
+                            <small class="form-text text-muted">Especificaciones técnicas (RAM, Procesador, Disco, etc.)
+                                -
+                                Ej: RAM: 8GB DDR4, Procesador: Intel Core i5-10400, Disco: 256GB SSD NVMe</small>
+                            {% if form.specifications.errors %}
                             <div class="text-danger small">
                                 {% for error in form.specifications.errors %}
-                                    <div>{{ error }}</div>
+                                <div>{{ error }}</div>
                                 {% endfor %}
                             </div>
-                        {% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.notes.label(class="form-label") }}
+                            {{ form.notes(class="form-control", rows="3") }}
+                            {% if form.notes.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.notes.errors %}
+                                <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
-                    
+
                     <!-- Campos de fecha ocultos -->
                     <div class="row d-none">
                         <div class="col-md-3 mb-3">
@@ -201,18 +218,6 @@
                             {{ form.warranty_expiry(class="form-control", type="date") }}
                         </div>
                     </div>
-
-                    <div class="mb-3">
-                        {{ form.notes.label(class="form-label") }}
-                        {{ form.notes(class="form-control", rows="3") }}
-                        {% if form.notes.errors %}
-                            <div class="text-danger small">
-                                {% for error in form.notes.errors %}
-                                    <div>{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
                     <div class="d-flex gap-2">
                         {{ form.submit(class="btn btn-primary") }}
                         <a href="{{ url_for('equipment') }}" class="btn btn-secondary">Cancelar</a>
@@ -224,11 +229,11 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // Lógica para mostrar/ocultar campos de red
         const typeSelect = document.getElementById('equipment_type');
         const networkFields = document.getElementById('network_fields');
-        
+
         function toggleNetworkFields() {
             const selectedType = typeSelect.value;
             if (selectedType === 'Desktop' || selectedType === 'Laptop') {
@@ -237,27 +242,26 @@
                 networkFields.style.display = 'none';
             }
         }
-        
+
         typeSelect.addEventListener('change', toggleNetworkFields);
         toggleNetworkFields(); // Ejecutar al cargar
-        
+
         // Lógica para prefijo de código
         const codeInput = document.getElementById('equipment_code');
         if (!codeInput.value) {
             codeInput.value = 'S/ULA:';
         }
-        
+
         // Asegurar que el prefijo se mantenga si el usuario borra todo
-        codeInput.addEventListener('input', function() {
+        codeInput.addEventListener('input', function () {
             if (!this.value.startsWith('S/ULA:')) {
                 // Si el usuario borra el prefijo, restaurarlo o ajustarlo
                 // Esta es una implementación simple, se puede mejorar
                 if (this.value.length < 6) {
-                     this.value = 'S/ULA:';
+                    this.value = 'S/ULA:';
                 }
             }
         });
     });
 </script>
 {% endblock %}
-
