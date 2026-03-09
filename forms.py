@@ -46,6 +46,7 @@ class EquipmentForm(FlaskForm):
                                         ('Disco Duro', 'Disco Duro'), ('Memoria RAM', 'Memoria RAM'),
                                         ('Procesador', 'Procesador'), ('Tarjeta Gráfica', 'Tarjeta Gráfica'),
                                         ('Tarjeta Madre', 'Tarjeta Madre'), ('Tarjeta de Red', 'Tarjeta de Red'),
+                                        ('Lector de codigo', 'Lector de codigo'),
                                         ('Tarjeta de Sonido', 'Tarjeta de Sonido'), ('Tarjeta de Video', 'Tarjeta de Video'),
                                         ('Cornetas', 'Cornetas'), ('Video beam', 'Video beam'),
                                         ('Teclado', 'Teclado'), ('Mouse', 'Mouse'), ('Audífonos', 'Audífonos'),('Regulador','Regulador'),
