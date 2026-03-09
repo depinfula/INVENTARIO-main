@@ -50,6 +50,7 @@ class EquipmentForm(FlaskForm):
                                         ('Tarjeta de Sonido', 'Tarjeta de Sonido'), ('Tarjeta de Video', 'Tarjeta de Video'),
                                         ('Cornetas', 'Cornetas'), ('Video beam', 'Video beam'),
                                         ('Teclado', 'Teclado'), ('Mouse', 'Mouse'), ('Audífonos', 'Audífonos'),('Regulador','Regulador'),
+                                        ('Ups', 'Ups'),
                                         ('Otro', 'Otro')],
                                 validators=[DataRequired()])
     brand = StringField('Marca', validators=[Optional(), Length(max=100)])
