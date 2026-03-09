@@ -41,7 +41,7 @@ class EquipmentForm(FlaskForm):
     equipment_type = SelectField('Tipo de Equipo', 
                                 choices=[('Laptop', 'Laptop'), ('Desktop', 'Desktop'), 
                                         ('Monitor', 'Monitor'), ('Impresora', 'Impresora'),
-                                        ('Tablet', 'Tablet'), ('Servidor', 'Servidor'),
+                                        ('Servidor', 'Servidor'),('Escáner', 'Escáner'),
                                         ('Router', 'Router'), ('Switch', 'Switch'),
                                         ('Disco Duro', 'Disco Duro'), ('Memoria RAM', 'Memoria RAM'),
                                         ('Procesador', 'Procesador'), ('Tarjeta Gráfica', 'Tarjeta Gráfica'),
