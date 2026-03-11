@@ -117,7 +117,7 @@
                             </div>
                             {% endif %}
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-4 mb-3" id="area_container">
                             {{ form.area_id.label(class="form-label") }}
                             {{ form.area_id(class="form-select") }}
                             {% if form.area_id.errors %}
@@ -128,7 +128,7 @@
                             </div>
                             {% endif %}
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-4 mb-3" id="assigned_to_container">
                             {{ form.assigned_to_id.label(class="form-label") }}
                             {{ form.assigned_to_id(class="form-select") }}
                             {% if form.assigned_to_id.errors %}
@@ -222,6 +222,11 @@
                         {{ form.submit(class="btn btn-primary") }}
                         <a href="{{ url_for('equipment') }}" class="btn btn-secondary">Cancelar</a>
                     </div>
+
+                    <!-- Botón flotante para guardar (móvil) -->
+                    <button type="submit" class="btn btn-primary rounded-circle shadow d-flex d-md-none align-items-center justify-content-center" style="position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; z-index: 1000;" title="Guardar Equipo">
+                        <i class="bi bi-floppy" style="font-size: 1.5rem;"></i>
+                    </button>
                 </form>
             </div>
         </div>
@@ -262,6 +267,50 @@
                 }
             }
         });
+
+        // Lógica para mostrar/ocultar Biblioteca según Departamento
+        const deptSelect = document.getElementById('department_id');
+        const areaContainer = document.getElementById('area_container');
+
+        function toggleAreaField() {
+            if (deptSelect && deptSelect.selectedIndex >= 0) {
+                const selectedDept = deptSelect.options[deptSelect.selectedIndex].text.trim().toUpperCase();
+                if (selectedDept.includes('BIBLIOTECA')) {
+                    areaContainer.classList.remove('d-none');
+                } else {
+                    areaContainer.classList.add('d-none');
+                    const areaSelect = document.getElementById('area_id');
+                    if(areaSelect) areaSelect.value = '';
+                }
+            }
+        }
+
+        if (deptSelect && areaContainer) {
+            deptSelect.addEventListener('change', toggleAreaField);
+            toggleAreaField(); // Ejecutar al cargar
+        }
+
+        // Lógica para mostrar/ocultar Asignado a según Estatus
+        const statusSelect = document.getElementById('status');
+        const assignedToContainer = document.getElementById('assigned_to_container');
+
+        function toggleAssignedToField() {
+            if (statusSelect && statusSelect.selectedIndex >= 0) {
+                const selectedStatus = statusSelect.options[statusSelect.selectedIndex].text.trim().toUpperCase();
+                if (selectedStatus === 'ASIGNADO') {
+                    assignedToContainer.classList.remove('d-none');
+                } else {
+                    assignedToContainer.classList.add('d-none');
+                    const assignedSelect = document.getElementById('assigned_to_id');
+                    if(assignedSelect) assignedSelect.value = '';
+                }
+            }
+        }
+
+        if (statusSelect && assignedToContainer) {
+            statusSelect.addEventListener('change', toggleAssignedToField);
+            toggleAssignedToField(); // Ejecutar al cargar
+        }
     });
 </script>
 {% endblock %}
