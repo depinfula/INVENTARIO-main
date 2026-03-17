@@ -2,48 +2,69 @@
 
 {% block title %}Iniciar Sesión - Sistema de Inventario{% endblock %}
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card shadow">
-            <div class="card-body p-5">
-                <div class="text-center mb-4">
-                    <img src="{{ url_for('static', filename='imagen/soporte-tecnico.png') }}" alt="Soporte Técnico"
-                        class="img-fluid mb-3" style="max-width: 120px;">
+{% block login_content %}
+<div class="login-card">
+    <div class="login-header">
+        <i class="bi bi-gear-wide-connected"></i>
+        <h2>Sistema de Gestión Técnica</h2>
+        <p>Ingresa tus credenciales para acceder</p>
+    </div>
+    <div class="login-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+                <label for="username" class="form-label">Usuario</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="bi bi-person text-muted"></i>
+                    </span>
+                    <input type="text" class="form-control border-start-0" id="username" name="username" 
+                           value="{{ remembered_username or '' }}" placeholder="Ingresa tu usuario" required>
                 </div>
-                <h2 class="card-title text-center mb-4">
-                    <i class="bi bi-box-arrow-in-right"></i> Sistema de Gestion Tecnica
-                </h2>
-                <form method="POST">
-                    {{ form.hidden_tag() }}
-                    <div class="mb-3">
-                        {{ form.username.label(class="form-label") }}
-                        {{ form.username(class="form-control") }}
-                        {% if form.username.errors %}
-                        <div class="text-danger small">
-                            {% for error in form.username.errors %}
-                            <div>{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="mb-3">
-                        {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control") }}
-                        {% if form.password.errors %}
-                        <div class="text-danger small">
-                            {% for error in form.password.errors %}
-                            <div>{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary btn-lg") }}
-                    </div>
-                </form>
             </div>
-        </div>
+            <div class="mb-3">
+                {{ form.password.label(class="form-label") }}
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="bi bi-lock text-muted"></i>
+                    </span>
+                    {{ form.password(class="form-control border-start-0", id="password", placeholder="Ingresa tu contraseña") }}
+                </div>
+                {% if form.password.errors %}
+                <div class="text-danger small mt-1">
+                    {% for error in form.password.errors %}
+                    <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3 form-check d-flex justify-content-between align-items-center">
+                <div>
+                    {{ form.remember(class="form-check-input", id="rememberMe") }}
+                    {{ form.remember.label(class="form-check-label", for="rememberMe") }}
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="showPassword">
+                    <label class="form-check-label text-muted small" for="showPassword">Mostrar</label>
+                </div>
+            </div>
+            <div class="d-grid">
+                {{ form.submit(class="btn btn-primary btn-lg w-100") }}
+            </div>
+        </form>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const togglePassword = document.getElementById('showPassword');
+        const passwordField = document.getElementById('password');
+
+        togglePassword.addEventListener('change', function() {
+            const type = this.checked ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+        });
+    });
+</script>
 {% endblock %}

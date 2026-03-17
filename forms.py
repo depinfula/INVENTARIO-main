@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from wtforms import StringField, PasswordField, SubmitField, SelectField, TextAreaField, DateField
+from wtforms import StringField, PasswordField, SubmitField, SelectField, TextAreaField, DateField, BooleanField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional
 from datetime import datetime
 from models import Department, Personnel, Area, Equipment
@@ -15,6 +15,7 @@ class UploadEquipmentForm(FlaskForm):
 class LoginForm(FlaskForm):
     username = StringField('Usuario', validators=[DataRequired()])
     password = PasswordField('Contraseña', validators=[DataRequired()])
+    remember = BooleanField('Recordar Usuario', default=False)
     submit = SubmitField('Iniciar Sesión')
 
 class RegisterForm(FlaskForm):
@@ -22,6 +23,7 @@ class RegisterForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Contraseña', validators=[DataRequired(), Length(min=6)])
     password2 = PasswordField('Confirmar Contraseña', validators=[DataRequired(), EqualTo('password')])
+    role = SelectField('Rol', choices=[('usuario', 'Usuario'), ('tecnico', 'Técnico'), ('admin', 'Administrador')], validators=[DataRequired()])
     submit = SubmitField('Registrar')
 
 class DepartmentForm(FlaskForm):
@@ -192,4 +194,6 @@ class ChangePasswordForm(FlaskForm):
 class EditUserForm(FlaskForm):
     username = StringField('Usuario', validators=[DataRequired(), Length(min=4, max=80)])
     email = StringField('Email', validators=[DataRequired(), Email()])
+    role = SelectField('Rol', choices=[('usuario', 'Usuario'), ('tecnico', 'Técnico'), ('admin', 'Administrador')], validators=[DataRequired()])
+    is_active = BooleanField('Activo')
     submit = SubmitField('Actualizar Usuario')

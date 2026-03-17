@@ -1,116 +1,100 @@
 {% extends "base.html" %}
 
 {% block title %}Dashboard - Sistema de Inventario{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<h1 class="mb-4"><i class="bi bi-speedometer2"></i> Dashboard</h1>
-
 <div class="row g-4 mb-4">
-    <div class="col-md-2">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Departamentos</h6>
-                        <h2 class="card-title">{{ total_departments }}</h2>
-                    </div>
-                    <i class="bi bi-building fs-1 opacity-50"></i>
-                </div>
-            </div>
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-primary">
+            <i class="bi bi-building stat-icon"></i>
+            <div class="stat-value">{{ total_departments }}</div>
+            <div class="stat-label">Departamentos</div>
+            <a href="{{ url_for('departments') }}" class="stat-link">
+                Ver detalles <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     </div>
-    <div class="col-md-2">
-        <div class="card text-white bg-secondary">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Bibliotecas</h6>
-                        <h2 class="card-title">{{ total_areas }}</h2>
-                    </div>
-                    <i class="bi bi-geo-alt fs-1 opacity-50"></i>
-                </div>
-            </div>
-            <div class="card-footer d-flex align-items-center justify-content-between">
-                <a href="{{ url_for('areas') }}" class="text-white text-decoration-none small stretched-link">Ver
-                    Detalles</a>
-                <div class="small text-white"><i class="bi bi-chevron-right"></i></div>
-            </div>
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-info">
+            <i class="bi bi-geo-alt stat-icon"></i>
+            <div class="stat-value">{{ total_areas }}</div>
+            <div class="stat-label">Bibliotecas</div>
+            <a href="{{ url_for('areas') }}" class="stat-link">
+                Ver detalles <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     </div>
-    <div class="col-md-2">
-        <div class="card text-white bg-success">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Equipos Totales</h6>
-                        <h2 class="card-title">{{ total_equipment }}</h2>
-                    </div>
-                    <i class="bi bi-laptop fs-1 opacity-50"></i>
-                </div>
-            </div>
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-success">
+            <i class="bi bi-laptop stat-icon"></i>
+            <div class="stat-value">{{ total_equipment }}</div>
+            <div class="stat-label">Equipos Totales</div>
+            <a href="{{ url_for('equipment') }}" class="stat-link">
+                Ver detalles <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     </div>
-    <div class="col-md-2">
-        <div class="card text-white bg-info">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Equipos Disponibles</h6>
-                        <h2 class="card-title">{{ available_equipment }}</h2>
-                    </div>
-                    <i class="bi bi-check-circle fs-1 opacity-50"></i>
-                </div>
-            </div>
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-warning">
+            <i class="bi bi-check-circle stat-icon"></i>
+            <div class="stat-value">{{ available_equipment }}</div>
+            <div class="stat-label">Equipos Disponibles</div>
+            <a href="{{ url_for('equipment') }}?status=Disponible" class="stat-link">
+                Ver detalles <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     </div>
-    <div class="col-md-2">
-        <div class="card text-white bg-warning">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Personal</h6>
-                        <h2 class="card-title">{{ total_personnel }}</h2>
-                    </div>
-                    <i class="bi bi-people fs-1 opacity-50"></i>
-                </div>
-            </div>
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-secondary">
+            <i class="bi bi-people stat-icon"></i>
+            <div class="stat-value">{{ total_personnel }}</div>
+            <div class="stat-label">Personal</div>
+            <a href="{{ url_for('personnel') }}" class="stat-link">
+                Ver detalles <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Accesos Rápidos</h5>
-                <div class="row g-3">
-                    <div class="col-md-2">
-                        <a href="{{ url_for('add_department') }}" class="btn btn-outline-primary w-100">
-                            <i class="bi bi-plus-circle"></i> Agregar Departamento
-                        </a>
-                    </div>
-                    <div class="col-md-2">
-                        <a href="{{ url_for('add_area') }}" class="btn btn-outline-secondary w-100">
-                            <i class="bi bi-plus-circle"></i> Agregar Biblioteca
-                        </a>
-                    </div>
-                    <div class="col-md-2">
-                        <a href="{{ url_for('add_equipment') }}" class="btn btn-outline-success w-100">
-                            <i class="bi bi-plus-circle"></i> Agregar Equipo
-                        </a>
-                    </div>
-                    <div class="col-md-2">
-                        <a href="{{ url_for('add_personnel') }}" class="btn btn-outline-info w-100">
-                            <i class="bi bi-plus-circle"></i> Agregar Personal
-                        </a>
-                    </div>
-                    <div class="col-md-2">
-                        <a href="{{ url_for('equipment') }}" class="btn btn-outline-secondary w-100">
-                            <i class="bi bi-list-ul"></i> Ver Todos los Equipos
-                        </a>
-                    </div>
-                </div>
-            </div>
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-lightning-charge"></i> Accesos Rápidos
+    </div>
+    <div class="card-body">
+        <div class="quick-actions">
+            <a href="{{ url_for('add_department') }}" class="quick-action-btn">
+                <i class="bi bi-building"></i>
+                <span>Agregar Departamento</span>
+            </a>
+            <a href="{{ url_for('add_area') }}" class="quick-action-btn">
+                <i class="bi bi-geo-alt"></i>
+                <span>Agregar Biblioteca</span>
+            </a>
+            <a href="{{ url_for('add_equipment') }}" class="quick-action-btn">
+                <i class="bi bi-laptop"></i>
+                <span>Agregar Equipo</span>
+            </a>
+            <a href="{{ url_for('add_personnel') }}" class="quick-action-btn">
+                <i class="bi bi-person-plus"></i>
+                <span>Agregar Personal</span>
+            </a>
+            <a href="{{ url_for('equipment') }}" class="quick-action-btn">
+                <i class="bi bi-list-ul"></i>
+                <span>Ver Equipos</span>
+            </a>
+            <a href="{{ url_for('assignments') }}" class="quick-action-btn">
+                <i class="bi bi-clipboard-check"></i>
+                <span>Asignaciones</span>
+            </a>
+            <a href="{{ url_for('tickets') }}" class="quick-action-btn">
+                <i class="bi bi-life-preserver"></i>
+                <span>Soporte</span>
+            </a>
+            <a href="{{ url_for('backup') }}" class="quick-action-btn">
+                <i class="bi bi-database-down"></i>
+                <span>Respaldos</span>
+            </a>
         </div>
     </div>
 </div>

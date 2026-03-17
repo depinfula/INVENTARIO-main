@@ -37,12 +37,9 @@
                             <a href="{{ url_for('edit_area', id=area.id) }}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-pencil"></i> Editar
                             </a>
-                            <form method="POST" action="{{ url_for('delete_area', id=area.id) }}" class="d-inline"
-                                onsubmit="return confirm('¿Estás seguro de eliminar esta biblioteca?');">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash"></i> Eliminar
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDelete('{{ url_for('delete_area', id=area.id) }}')">
+                                <i class="bi bi-trash"></i> Eliminar
+                            </button>
                         </td>
                     </tr>
                     {% endfor %}

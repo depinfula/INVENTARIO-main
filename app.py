@@ -1,13 +1,15 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, make_response, session
 from io import BytesIO
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Department, Equipment, Personnel, Area, Assignment, Ticket, TicketResponse, TicketHistory, TicketAttachment
 from sqlalchemy import or_
 from forms import LoginForm, RegisterForm, DepartmentForm, EquipmentForm, PersonnelForm, AreaForm, AssignmentForm, TicketForm, TicketResponseForm, ChangePasswordForm, EditUserForm
 from config import Config
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import subprocess
+import re
+from functools import wraps
 from werkzeug.utils import secure_filename
 from urllib.parse import quote_plus
 
@@ -21,6 +23,38 @@ try:
     from sshtunnel import SSHTunnelForwarder
 except Exception:
     SSHTunnelForwarder = None
+
+login_attempts = {}
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_TIME = 15
+
+def validate_ip_address(ip):
+    if not ip:
+        return True
+    ipv4_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+    ipv6_pattern = r'^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$'
+    if re.match(ipv4_pattern, ip):
+        parts = ip.split('.')
+        return all(0 <= int(part) <= 255 for part in parts)
+    return bool(re.match(ipv6_pattern, ip))
+
+def validate_mac_address(mac):
+    if not mac:
+        return True
+    mac_pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+    return bool(re.match(mac_pattern, mac))
+
+def role_required(*roles):
+    def decorator(f):
+        @wraps(f)
+        @login_required
+        def decorated_function(*args, **kwargs):
+            if current_user.role not in roles:
+                flash('No tienes permisos para acceder a esta página.', 'danger')
+                return redirect(url_for('dashboard'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -69,20 +103,38 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Por favor inicia sesión para acceder a esta página.'
+login_manager.session_protection = 'strong'
+
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+
+@app.before_request
+def check_session_timeout():
+    if current_user.is_authenticated:
+        sessionLifetime = app.config.get('SESSION_TIMEOUT', 30)
+        last_activity = session.get('last_activity')
+        if last_activity:
+            last_activity_time = datetime.strptime(last_activity, '%Y-%m-%d %H:%M:%S')
+            if (datetime.now() - last_activity_time).total_seconds() > sessionLifetime * 60:
+                logout_user()
+                flash('Tu sesión ha expirado por inactividad.', 'warning')
+                return redirect(url_for('login'))
+        session['last_activity'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+@login_manager.unauthorized_handler
+def unauthorized_callback():
+    return redirect(url_for('login'))
+
 def create_tables():
     with app.app_context():
         try:
             print('Connecting to:', app.config.get('SQLALCHEMY_DATABASE_URI'))
-            # Crear todas las tablas si no existen (no eliminar en producción)
             db.create_all()
-            # Crear usuario admin por defecto si no existe
             if not User.query.filter_by(username='admin').first():
-                admin = User(username='admin', email='admin@example.com')
+                admin = User(username='admin', email='admin@example.com', role='admin')
                 admin.set_password('admin123')
                 db.session.add(admin)
                 db.session.commit()
@@ -92,6 +144,22 @@ def create_tables():
             print(f"Error al crear tablas: {e!r}")
             traceback.print_exc()
             db.session.rollback()
+
+def cleanup_orphaned_files():
+    valid_files = set()
+    for model in [Equipment, TicketAttachment]:
+        for record in model.query.all():
+            if hasattr(record, 'filename') and record.filename:
+                valid_files.add(record.filename)
+    
+    upload_dir = app.config.get('UPLOAD_FOLDER', 'static/uploads')
+    if os.path.exists(upload_dir):
+        for filename in os.listdir(upload_dir):
+            if filename not in valid_files and filename != '.gitkeep':
+                try:
+                    os.remove(os.path.join(upload_dir, filename))
+                except Exception:
+                    pass
 
 
 @app.route('/')
@@ -105,7 +173,25 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     
+    remembered_username = session.get('remembered_username', '')
+    
+    client_ip = request.remote_addr
+    now = datetime.now()
+    
+    if client_ip in login_attempts:
+        attempts_data = login_attempts[client_ip]
+        if attempts_data['count'] >= MAX_LOGIN_ATTEMPTS:
+            if now - attempts_data['first_attempt'] < timedelta(minutes=LOCKOUT_TIME):
+                flash(f'Demasiados intentos fallidos. Intenta de nuevo en {LOCKOUT_TIME} minutos.', 'danger')
+                return render_template('login.html', form=LoginForm(), remembered_username=remembered_username)
+            else:
+                login_attempts[client_ip] = {'count': 0, 'first_attempt': now}
+    
     form = LoginForm()
+    
+    if request.method == 'GET':
+        return render_template('login.html', form=form, remembered_username=remembered_username)
+    
     if form.validate_on_submit():
         try:
             user = User.query.filter_by(username=form.username.data).first()
@@ -114,14 +200,41 @@ def login():
             print('Error en consulta de usuario:', repr(e))
             traceback.print_exc()
             flash('Error de conexión con la base de datos. Revisa la configuración.', 'danger')
-            return render_template('login.html', form=form)
+            return render_template('login.html', form=form, remembered_username=remembered_username)
 
         if user and user.check_password(form.password.data):
-            login_user(user)
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('dashboard'))
-        flash('Usuario o contraseña incorrectos', 'danger')
-    return render_template('login.html', form=form)
+            if hasattr(user, 'is_active') and not user.is_active:
+                flash('Tu cuenta está desactivada. Contacta al administrador.', 'danger')
+                return render_template('login.html', form=form, remembered_username=remembered_username)
+            
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            if client_ip in login_attempts:
+                del login_attempts[client_ip]
+            
+            login_user(user, remember=form.remember.data)
+            
+            if form.remember.data:
+                session['remembered_username'] = user.username
+                resp = make_response(redirect(url_for('dashboard')))
+                resp.set_cookie('remembered_user', user.username, max_age=timedelta(days=30))
+                return resp
+            else:
+                session.pop('remembered_username', None)
+                return redirect(url_for('dashboard'))
+        
+        if client_ip not in login_attempts:
+            login_attempts[client_ip] = {'count': 1, 'first_attempt': now}
+        else:
+            login_attempts[client_ip]['count'] += 1
+        
+        remaining = MAX_LOGIN_ATTEMPTS - login_attempts[client_ip]['count']
+        if remaining > 0:
+            flash(f'Usuario o contraseña incorrectos. Intentos restantes: {remaining}', 'danger')
+        else:
+            flash(f'Demasiados intentos fallidos. Intenta de nuevo en {LOCKOUT_TIME} minutos.', 'danger')
+    return render_template('login.html', form=form, remembered_username=remembered_username)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -137,7 +250,7 @@ def register():
             flash('El email ya está registrado', 'danger')
             return render_template('register.html', form=form)
         
-        user = User(username=form.username.data, email=form.email.data)
+        user = User(username=form.username.data, email=form.email.data, role=form.role.data)
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
@@ -150,13 +263,15 @@ def register():
 def logout():
     logout_user()
     flash('Sesión cerrada exitosamente', 'info')
-    return redirect(url_for('login'))
+    response = make_response(redirect(url_for('login')))
+    return response
 
 @app.route('/users')
 @login_required
 def users():
-    users_list = User.query.order_by(User.username).all()
-    return render_template('users.html', users=users_list)
+    page = request.args.get('page', 1, type=int)
+    pagination = User.query.order_by(User.username).paginate(page=page, per_page=20, error_out=False)
+    return render_template('users.html', users=pagination.items, pagination=pagination)
 
 @app.route('/users/change_password/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -171,12 +286,11 @@ def change_user_password(id):
     return render_template('change_user_password.html', form=form, user=user)
 
 @app.route('/users/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
+@role_required('admin')
 def edit_user(id):
     user = User.query.get_or_404(id)
     form = EditUserForm(obj=user)
     if form.validate_on_submit():
-        # Verificar duplicados (excluyendo el usuario actual)
         if User.query.filter(User.username == form.username.data, User.id != id).first():
             flash('El nombre de usuario ya existe', 'danger')
             return render_template('edit_user.html', form=form, user=user)
@@ -186,25 +300,21 @@ def edit_user(id):
         
         user.username = form.username.data
         user.email = form.email.data
+        user.role = form.role.data
+        user.is_active = form.is_active.data
         db.session.commit()
         flash('Usuario actualizado exitosamente', 'success')
         return redirect(url_for('users'))
     return render_template('edit_user.html', form=form, user=user)
 
 @app.route('/users/delete/<int:id>', methods=['POST'])
-@login_required
+@role_required('admin')
 def delete_user(id):
     if id == current_user.id:
         flash('No puedes eliminar tu propia cuenta', 'danger')
         return redirect(url_for('users'))
         
     user = User.query.get_or_404(id)
-    # Opcional: Verificar si el usuario tiene datos asociados críticos que impidan el borrado
-    # Por ahora permitimos borrar, SQLAlchemy se encargará de las relaciones (set null o cascade según modelo)
-    # Revisando models.py:
-    # Ticket.created_by y assigned_to son ForeignKeys sin cascade delete explícito en el modelo Ticket para User.
-    # Pero User tiene backrefs. Si borramos User, los tickets quedarán con created_by_id=NULL si la DB lo permite.
-    # Vamos a intentarlo.
     
     try:
         db.session.delete(user)
@@ -236,11 +346,12 @@ def dashboard():
 @app.route('/departments')
 @login_required
 def departments():
-    departments_list = Department.query.order_by(Department.name).all()
-    return render_template('departments.html', departments=departments_list)
+    page = request.args.get('page', 1, type=int)
+    pagination = Department.query.order_by(Department.name).paginate(page=page, per_page=20, error_out=False)
+    return render_template('departments.html', departments=pagination.items, pagination=pagination)
 
 @app.route('/departments/add', methods=['GET', 'POST'])
-@login_required
+@role_required('admin')
 def add_department():
     form = DepartmentForm()
     if form.validate_on_submit():
@@ -256,7 +367,7 @@ def add_department():
     return render_template('department_form.html', form=form, title='Agregar Departamento')
 
 @app.route('/departments/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
+@role_required('admin')
 def edit_department(id):
     department = Department.query.get_or_404(id)
     form = DepartmentForm(obj=department)
@@ -273,9 +384,14 @@ def edit_department(id):
     return render_template('department_form.html', form=form, title='Editar Departamento', department=department)
 
 @app.route('/departments/delete/<int:id>', methods=['POST'])
-@login_required
+@role_required('admin')
 def delete_department(id):
     department = Department.query.get_or_404(id)
+    
+    if department.equipments or department.personnel:
+        flash('No se puede eliminar el departamento porque tiene equipos o personal asociado', 'danger')
+        return redirect(url_for('departments'))
+    
     db.session.delete(department)
     db.session.commit()
     flash('Departamento eliminado exitosamente', 'success')
@@ -413,7 +529,7 @@ def equipment_report():
     return response
 
 @app.route('/equipment/add', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'tecnico')
 def add_equipment():
     # Verificar que existan departamentos
     if Department.query.count() == 0:
@@ -429,6 +545,19 @@ def add_equipment():
             if Equipment.query.filter_by(serial=form.serial.data).first():
                 flash('El serial ya existe', 'danger')
                 return render_template('equipment_form.html', form=form, title='Agregar Equipo')
+            
+            if form.ip_address.data and not validate_ip_address(form.ip_address.data):
+                flash('La dirección IP no es válida', 'danger')
+                return render_template('equipment_form.html', form=form, title='Agregar Equipo')
+            
+            if form.physical_address.data and not validate_mac_address(form.physical_address.data):
+                flash('La dirección MAC no es válida', 'danger')
+                return render_template('equipment_form.html', form=form, title='Agregar Equipo')
+            
+            if form.warranty_expiry.data and form.purchase_date.data:
+                if form.warranty_expiry.data < form.purchase_date.data:
+                    flash('La fecha de vencimiento de garantía no puede ser anterior a la fecha de compra', 'danger')
+                    return render_template('equipment_form.html', form=form, title='Agregar Equipo')
             
             # Manejar imagen
             image_filename = None
@@ -482,7 +611,7 @@ def view_equipment(id):
     return render_template('equipment_view.html', equipment=equipment)
 
 @app.route('/equipment/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'tecnico')
 def edit_equipment(id):
     equipment = Equipment.query.get_or_404(id)
     form = EquipmentForm(obj=equipment)
@@ -501,6 +630,19 @@ def edit_equipment(id):
         if Equipment.query.filter(Equipment.serial == form.serial.data, Equipment.id != id).first():
             flash('El serial ya existe', 'danger')
             return render_template('equipment_form.html', form=form, title='Editar Equipo', equipment=equipment)
+        
+        if form.ip_address.data and not validate_ip_address(form.ip_address.data):
+            flash('La dirección IP no es válida', 'danger')
+            return render_template('equipment_form.html', form=form, title='Editar Equipo', equipment=equipment)
+        
+        if form.physical_address.data and not validate_mac_address(form.physical_address.data):
+            flash('La dirección MAC no es válida', 'danger')
+            return render_template('equipment_form.html', form=form, title='Editar Equipo', equipment=equipment)
+        
+        if form.warranty_expiry.data and form.purchase_date.data:
+            if form.warranty_expiry.data < form.purchase_date.data:
+                flash('La fecha de vencimiento de garantía no puede ser anterior a la fecha de compra', 'danger')
+                return render_template('equipment_form.html', form=form, title='Editar Equipo', equipment=equipment)
         
         # Manejar imagen si se sube una nueva
         if form.image.data:
@@ -542,7 +684,7 @@ def edit_equipment(id):
     return render_template('equipment_form.html', form=form, title='Editar Equipo', equipment=equipment)
 
 @app.route('/equipment/delete/<int:id>', methods=['POST'])
-@login_required
+@role_required('admin')
 def delete_equipment(id):
     equipment = Equipment.query.get_or_404(id)
     # Eliminar imagen si existe
@@ -564,11 +706,12 @@ def uploaded_file(filename):
 @app.route('/areas')
 @login_required
 def areas():
-    areas_list = Area.query.order_by(Area.name).all()
-    return render_template('areas.html', areas=areas_list)
+    page = request.args.get('page', 1, type=int)
+    pagination = Area.query.order_by(Area.name).paginate(page=page, per_page=20, error_out=False)
+    return render_template('areas.html', areas=pagination.items, pagination=pagination)
 
 @app.route('/areas/add', methods=['GET', 'POST'])
-@login_required
+@role_required('admin')
 def add_area():
     form = AreaForm()
     if form.validate_on_submit():
@@ -584,7 +727,7 @@ def add_area():
     return render_template('area_form.html', form=form, title='Agregar Área')
 
 @app.route('/areas/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
+@role_required('admin')
 def edit_area(id):
     area = Area.query.get_or_404(id)
     form = AreaForm(obj=area)
@@ -602,9 +745,14 @@ def edit_area(id):
     return render_template('area_form.html', form=form, title='Editar Área', area=area)
 
 @app.route('/areas/delete/<int:id>', methods=['POST'])
-@login_required
+@role_required('admin')
 def delete_area(id):
     area = Area.query.get_or_404(id)
+    
+    if area.equipments or area.personnel:
+        flash('No se puede eliminar el área porque tiene equipos o personal asociado', 'danger')
+        return redirect(url_for('areas'))
+    
     db.session.delete(area)
     db.session.commit()
     flash('Área eliminada exitosamente', 'success')
@@ -614,11 +762,12 @@ def delete_area(id):
 @app.route('/personnel')
 @login_required
 def personnel():
-    personnel_list = Personnel.query.order_by(Personnel.name).all()
-    return render_template('personnel.html', personnel=personnel_list)
+    page = request.args.get('page', 1, type=int)
+    pagination = Personnel.query.order_by(Personnel.name).paginate(page=page, per_page=20, error_out=False)
+    return render_template('personnel.html', personnel=pagination.items, pagination=pagination)
 
 @app.route('/personnel/add', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'tecnico')
 def add_personnel():
     form = PersonnelForm()
     if form.validate_on_submit():
@@ -643,7 +792,7 @@ def add_personnel():
     return render_template('personnel_form.html', form=form, title='Agregar Personal')
 
 @app.route('/personnel/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'tecnico')
 def edit_personnel(id):
     personnel = Personnel.query.get_or_404(id)
     form = PersonnelForm(obj=personnel)
@@ -670,9 +819,14 @@ def edit_personnel(id):
     return render_template('personnel_form.html', form=form, title='Editar Personal', personnel=personnel)
 
 @app.route('/personnel/delete/<int:id>', methods=['POST'])
-@login_required
+@role_required('admin', 'tecnico')
 def delete_personnel(id):
     personnel = Personnel.query.get_or_404(id)
+    
+    if personnel.equipments:
+        flash('No se puede eliminar el personal porque tiene equipos asignados', 'danger')
+        return redirect(url_for('personnel'))
+    
     db.session.delete(personnel)
     db.session.commit()
     flash('Personal eliminado exitosamente', 'success')
@@ -682,11 +836,12 @@ def delete_personnel(id):
 @app.route('/assignments')
 @login_required
 def assignments():
-    assignments_list = Assignment.query.order_by(Assignment.assignment_date.desc()).all()
-    return render_template('assignments.html', assignments=assignments_list)
+    page = request.args.get('page', 1, type=int)
+    pagination = Assignment.query.order_by(Assignment.assignment_date.desc()).paginate(page=page, per_page=20, error_out=False)
+    return render_template('assignments.html', assignments=pagination.items, pagination=pagination)
 
 @app.route('/assignments/add', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'tecnico')
 def add_assignment():
     form = AssignmentForm()
     if form.validate_on_submit():
@@ -734,7 +889,7 @@ def add_assignment():
     return render_template('assignment_form.html', form=form, title='Agregar Asignación')
 
 @app.route('/assignments/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
+@role_required('admin', 'tecnico')
 def edit_assignment(id):
     assignment = Assignment.query.get_or_404(id)
     form = AssignmentForm(obj=assignment)
@@ -775,7 +930,7 @@ def edit_assignment(id):
     return render_template('assignment_form.html', form=form, title='Editar Asignación', assignment=assignment)
 
 @app.route('/assignments/return/<int:id>', methods=['POST'])
-@login_required
+@role_required('admin', 'tecnico')
 def return_assignment(id):
     assignment = Assignment.query.get_or_404(id)
     if assignment.status == 'Devuelta':
@@ -802,7 +957,7 @@ def return_assignment(id):
     return redirect(url_for('assignments'))
 
 @app.route('/assignments/delete/<int:id>', methods=['POST'])
-@login_required
+@role_required('admin')
 def delete_assignment(id):
     assignment = Assignment.query.get_or_404(id)
     try:
@@ -1062,12 +1217,9 @@ def ticket_reports():
     return render_template('ticket_reports.html', stats=stats)
 
 @app.route('/backup')
-@login_required
+@role_required('admin')
 def backup():
-    # Only allow admin to do this
-    if current_user.username != 'admin':
-        flash('No tienes permisos suficientes para realizar respaldos.', 'danger')
-        return redirect(url_for('dashboard'))
+    pass
         
     try:
         # Generar nombre de archivo con fecha y hora
