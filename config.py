@@ -48,5 +48,11 @@ class Config:
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'connect_args': {'options': '-c client_encoding=LATIN1'}
+        'connect_args': {'options': '-c client_encoding=LATIN1'},
+        # --- NUEVAS OPCIONES PARA EVITAR CAÍDAS ---
+        'pool_pre_ping': True,       # Verifica si la conexión sirve antes de usarla
+        'pool_recycle': 280,         # Recicla conexiones antes de los 5 min (Render suele matar a los 5)
+        'pool_timeout': 30,          # No te quedes colgado esperando si el túnel murió
+        'pool_size': 5,              # Mantén pocas conexiones para no saturar tu PC local
+        'max_overflow': 2            # Permitir un pequeño margen extra
     }
